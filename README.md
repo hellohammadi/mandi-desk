@@ -3,6 +3,8 @@
 **AI order desk for small fruit farmers who sell direct, without middlemen.**
 Paste a buyer's WhatsApp message (Roman Urdu, Urdu or English) and Mandi Desk extracts the order, prices it from the farmer's own rate list, drafts a reply in the buyer's language, and saves it to an order book.
 
+> **Open-weight AI:** Mandi Desk is powered by **ALLaM 7B Instruct**, an **open-weight** model (7B parameters, Apache-2.0) served through the Groq API. The model is central to the product: it reads every buyer message and writes every reply.
+
 Built at Hacktoberfest Lahore 2026 (Riphah International University).
 
 **How it is used:** Mandi Desk is the farmer's private back-office tool and runs locally on the farmer's computer. Buyers keep messaging on WhatsApp as usual; the farmer pastes their messages into Mandi Desk, reviews the drafted reply and sends it back.
@@ -25,7 +27,8 @@ Tracking these by hand leads to missed orders, inconsistent quotes and slow repl
 | Item | Value |
 |---|---|
 | Model | `allam-2-7b` on Groq: ALLaM 7B Instruct by SDAIA, open-weight (published on Hugging Face as `ALLaM-AI/ALLaM-7B-Instruct-preview`) |
-| Parameter size | 7B |
+| Parameter size | 7B (within the event's 8B limit) |
+| Open-weight | Yes. Weights are publicly released on Hugging Face under the **Apache-2.0** license ([model card](https://huggingface.co/ALLaM-AI/ALLaM-7B-Instruct-preview)) |
 | Provider / runtime | Groq API (OpenAI-compatible). Alternative: Ollama locally, e.g. `qwen3:8b` |
 | Why this model | It was the only chat model of 8B or fewer parameters available on our Groq account at build time (`llama-3.1-8b-instant` returned 404). |
 | Integration | `llm.py` calls the model through the OpenAI-compatible Chat Completions API (`openai` Python SDK with Groq's base URL). Model name, key and base URL come from environment variables, so the same code runs against Ollama. |
