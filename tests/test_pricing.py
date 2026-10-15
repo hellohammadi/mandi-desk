@@ -55,3 +55,9 @@ def test_quote_unknown_city_uses_default_and_missing_city_excluded():
 def test_no_quote_when_details_missing():
     o = normalize_order({"product": "kinnow"}, PRODUCTS)
     assert build_quote(o, CFG) is None
+
+
+def test_product_fuzzy_match():
+    assert normalize_order({"product": "kinno orange"}, PRODUCTS)["product"] == "kinnow"
+    assert normalize_order({"product": "Keenu (A grade)"}, PRODUCTS)["product"] == "kinnow"
+    assert normalize_order({"product": "apples"}, PRODUCTS)["product"] is None

@@ -127,10 +127,26 @@ python run_eval.py # runs 8 real buyer messages through the model, writes eval_r
 ```
 
 ### Findings
-<!-- Paste the table from eval_results.md here after running run_eval.py -->
-| # | Input | Expected | Result | Notes |
-|---|---|---|---|---|
-| | | | | |
+Eval set: 8 real-style buyer messages (`samples.json`) covering Roman Urdu, Urdu script, English, unit variety (peti, mann/maund, kg, ton, crates), a price-only inquiry and a non-order message. A sample passes only if every expected field matches.
+
+**Run 1, `allam-2-7b`, initial prompt: 6/8 passed**
+
+| # | Input | Result | Notes |
+|---|---|---|---|
+| 1 | AoA bhai 50 peti kinnow chahiye A grade, Lahore delivery agl... | PASS | - |
+| 2 | Salam, 20 mann kinno B grade ka rate kya hai? Islamabad bhej... | FAIL | product: expected kinnow, got None |
+| 3 | Hi, I need 500 kg of grade A kinnow delivered to Karachi by ... | PASS | - |
+| 4 | السلام علیکم، مجھے 30 پیٹی کینو چاہیے، اے گریڈ، لاہور میں اگ... | PASS | - |
+| 5 | bhai kinnow ka rate bata do | PASS | - |
+| 6 | 100 crates mosambi C grade chahiye Sargodha pickup kal | PASS | - |
+| 7 | Mujhe 2 ton kinnow chahiye wholesale ke liye, grade B, Lahor... | FAIL | quantity: expected 2, got 2000.0 |
+| 8 | kal wala order cancel kar do please | PASS | - |
+
+Observed issues and fixes:
+- **#2:** the model's product string did not exactly match a known alias, so validation rejected it. Fix: product matching now also checks each word of the model's answer against the alias list, and the prompt asks for a single canonical word.
+- **#7:** the model converted 2 ton into 2000 itself while also reporting the unit as ton. Fix: the prompt now says to copy the number as written and never convert units, since conversion is done deterministically in `pricing.py`.
+
+**Run 2, after fixes:** _(to be filled from `python run_eval.py`)_
 
 ## Known limitations
 - Prices are per peti; delivery is a flat fee per city from `prices.json`.

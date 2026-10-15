@@ -7,6 +7,7 @@ hallucinated.
 from __future__ import annotations
 
 import math
+import re
 
 REQUIRED_FIELDS = ["product", "grade", "quantity", "city", "delivery_date"]
 
@@ -36,13 +37,25 @@ def _clean_str(value):
     return value if value and value.lower() not in {"null", "none", "n/a", "unknown"} else None
 
 
+def _match_product(text: str, known_products: list[str]):
+    """Exact alias match first, then any alias word inside the model's answer
+    (e.g. "kinno orange" -> kinnow)."""
+    text = text.lower().strip()
+    exact = PRODUCT_ALIASES.get(text, text)
+    if exact in known_products:
+        return exact
+    for word in re.split(r"[^\w]+", text):
+        mapped = PRODUCT_ALIASES.get(word, word)
+        if mapped in known_products:
+            return mapped
+    return None
+
+
 def normalize_order(raw: dict, known_products: list[str]) -> dict:
     """Turn the model's JSON into a clean, predictable order dict."""
     product = _clean_str(raw.get("product"))
     if product:
-        product = PRODUCT_ALIASES.get(product.lower(), product.lower())
-        if product not in known_products:
-            product = None
+        product = _match_product(product, known_products)
 
     grade = _clean_str(raw.get("grade"))
     if grade:

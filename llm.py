@@ -22,9 +22,9 @@ EXTRACT_SYSTEM = """You read messages that fruit buyers in Pakistan send to a fa
 Messages may be in Roman Urdu, Urdu script, English, or a mix.
 Return ONLY a JSON object with these keys:
 - intent: "order", "price_inquiry", or "other"
-- product: fruit name in lowercase English (e.g. "kinnow", "mosambi") or null
+- product: one word, lowercase: "kinnow" (also for kinno, kino, keenu, orange) or "mosambi", or null
 - grade: "A", "B", "C" or null
-- quantity: number or null (convert words like "pachas" to 50)
+- quantity: the number exactly as the buyer wrote it, or null. Convert number words ("pachas" -> 50) but NEVER convert units (2 ton stays 2, 20 mann stays 20)
 - unit: one of "peti", "kg", "maund", "ton" or null ("mann/man" = maund, "crate/box/carton" = peti)
 - city: delivery city or null
 - delivery_date: delivery time exactly as the buyer said it (e.g. "next week", "Friday") or null
