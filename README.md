@@ -150,12 +150,31 @@ Observed issues and fixes:
 
 Fix 2: a deterministic **number-grounding check** (`pricing.ground_quantity`). If the model's quantity does not appear anywhere in the buyer's message, but the quantity divided by the unit factor (1000 for ton, 40 for maund) does, the original number is restored. The model's numbers are never trusted blindly.
 
-**Run 3, after the grounding check:** _(to be filled from `python run_eval.py`)_
+**Run 3, after the grounding check: 8/8 passed.**
+
+| # | Input | Result | Notes |
+|---|---|---|---|
+| 1 | AoA bhai 50 peti kinnow chahiye A grade, Lahore delivery agl... | PASS | - |
+| 2 | Salam, 20 mann kinno B grade ka rate kya hai? Islamabad bhej... | PASS | - |
+| 3 | Hi, I need 500 kg of grade A kinnow delivered to Karachi by ... | PASS | - |
+| 4 | السلام علیکم، مجھے 30 پیٹی کینو چاہیے، اے گریڈ، لاہور میں اگ... | PASS | - |
+| 5 | bhai kinnow ka rate bata do | PASS | - |
+| 6 | 100 crates mosambi C grade chahiye Sargodha pickup kal | PASS | - |
+| 7 | Mujhe 2 ton kinnow chahiye wholesale ke liye, grade B, Lahor... | PASS | - |
+| 8 | kal wala order cancel kar do please | PASS | - |
+
+| Run | Change | Passed |
+|---|---|---|
+| 1 | Initial prompt | 6/8 |
+| 2 | Product word matching + "don't convert units" prompt | 7/8 |
+| 3 | Deterministic number-grounding check | 8/8 |
+
+Note: 8 samples is a small set and was also used while fixing, so this shows the pipeline works on these cases, not general accuracy. The eval checks extraction only; reply drafts were checked manually in the app.
 
 ## Known limitations
 - Prices are per peti; delivery is a flat fee per city from `prices.json`.
 - Only products in the rate list are recognised (kinnow, mosambi by default).
-- An 8B model can misread unusual spellings or mixed-script messages; the farmer reviews every reply before sending (human in the loop).
+- The 7B model can misread unusual spellings or mixed-script messages; the farmer reviews every reply before sending (human in the loop).
 - No direct WhatsApp integration yet; messages are pasted manually.
 - Single-user, local SQLite database.
 
