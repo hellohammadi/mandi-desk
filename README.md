@@ -22,10 +22,11 @@ Tracking these by hand leads to missed orders, inconsistent quotes and slow repl
 ## AI component
 | Item | Value |
 |---|---|
-| Model | `llama-3.1-8b-instant` (Meta Llama 3.1 8B Instruct) |
-| Parameter size | 8B |
+| Model | `allam-2-7b` (ALLaM 7B Instruct, open-weight, by SDAIA) |
+| Parameter size | 7B |
 | Provider / runtime | Groq API (OpenAI-compatible). Alternative: Ollama locally, e.g. `qwen3:8b` |
-| Calls per message | 2: (1) extraction with JSON mode, temperature 0; (2) reply drafting, temperature 0.3 |
+| Why this model | It was the only chat model of 8B or fewer parameters available on our Groq account at build time (`llama-3.1-8b-instant` returned 404). |
+| Calls per message | 2: (1) extraction to JSON, temperature 0 (JSON mode when supported, otherwise defensive JSON parsing); (2) reply drafting, temperature 0.3 |
 | What it does | Multilingual understanding of Roman Urdu / Urdu / English buyer messages and generation of the reply. Without the model the app cannot read orders at all. |
 
 ## Architecture
@@ -33,7 +34,7 @@ Tracking these by hand leads to missed orders, inconsistent quotes and slow repl
 flowchart LR
   F[Farmer] --> UI[Streamlit UI]
   UI --> X[llm.extract_order]
-  X --> M[Llama 3.1 8B via Groq]
+  X --> M[ALLaM 7B via Groq]
   M --> X
   X --> N[pricing.normalize_order]
   N --> P[pricing.build_quote]
@@ -64,11 +65,11 @@ flowchart LR
 sequenceDiagram
   actor Farmer
   participant UI as Streamlit
-  participant LLM as Llama 3.1 8B (Groq)
+  participant LLM as ALLaM 7B (Groq)
   participant P as pricing.py
   participant DB as SQLite
   Farmer->>UI: Paste buyer message
-  UI->>LLM: Extract order (JSON mode)
+  UI->>LLM: Extract order (JSON)
   LLM-->>UI: Raw JSON
   UI->>P: normalize_order + build_quote
   P-->>UI: Order, missing fields, quote
@@ -144,7 +145,7 @@ python run_eval.py # runs 8 real buyer messages through the model, writes eval_r
 | Hammad | Idea, prompts, pricing logic, UI, testing |
 
 ## Acknowledgements
-- Meta Llama 3.1 (Llama 3.1 Community License), served via Groq
+- ALLaM 7B by SDAIA (open-weight; see its model license on Hugging Face), served via Groq
 - Streamlit, OpenAI Python SDK (used as an OpenAI-compatible client), python-dotenv, pytest
 - AI-assisted development: code drafted with help from Claude and reviewed/tested by the team
 

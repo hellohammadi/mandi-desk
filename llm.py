@@ -6,7 +6,7 @@ import json
 import os
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import BadRequestError, OpenAI
 
 from pricing import normalize_order
 
@@ -14,7 +14,7 @@ load_dotenv()
 
 BASE_URL = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1")
 API_KEY = os.getenv("LLM_API_KEY") or os.getenv("GROQ_API_KEY") or "ollama"
-MODEL = os.getenv("MODEL_NAME", "llama-3.1-8b-instant")
+MODEL = os.getenv("MODEL_NAME", "allam-2-7b")
 
 _client = OpenAI(base_url=BASE_URL, api_key=API_KEY)
 
@@ -48,17 +48,30 @@ Rules:
 - Maximum 5 short lines. No markdown."""
 
 
+def _parse_json(text: str) -> dict:
+    """Parse the model output as JSON, tolerating code fences or extra text."""
+    text = (text or "").strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start, end = text.find("{"), text.rfind("}")
+        if start == -1 or end <= start:
+            raise ValueError(f"Model did not return JSON: {text[:120]}")
+        return json.loads(text[start:end + 1])
+
+
 def extract_order(message: str, known_products: list[str]) -> dict:
-    resp = _client.chat.completions.create(
-        model=MODEL,
-        temperature=0,
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": EXTRACT_SYSTEM},
-            {"role": "user", "content": f"Message: {message}\nJSON:"},
-        ],
-    )
-    raw = json.loads(resp.choices[0].message.content)
+    messages = [
+        {"role": "system", "content": EXTRACT_SYSTEM},
+        {"role": "user", "content": f"Message: {message}\nJSON:"},
+    ]
+    try:  # JSON mode where the provider supports it for this model
+        resp = _client.chat.completions.create(
+            model=MODEL, temperature=0, response_format={"type": "json_object"}, messages=messages,
+        )
+    except BadRequestError:  # model without JSON mode: plain call, parse defensively
+        resp = _client.chat.completions.create(model=MODEL, temperature=0, messages=messages)
+    raw = _parse_json(resp.choices[0].message.content)
     return normalize_order(raw, known_products)
 
 
