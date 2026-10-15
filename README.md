@@ -14,7 +14,7 @@ Tracking these by hand leads to missed orders, inconsistent quotes and slow repl
 
 ## Solution & core features
 1. **Order extraction:** an open-weight LLM turns a free-text message into structured JSON (product, grade, quantity, unit, city, delivery date, buyer name/phone) and flags missing fields.
-2. **Deterministic pricing:** Python (not the LLM) converts units (peti / kg / maund / ton) and computes rate, delivery and total, so prices are never hallucinated.
+2. **Deterministic pricing with number grounding:** quantities are checked against the original message, then Python (not the LLM) converts units (peti / kg / maund / ton) and computes rate, delivery and total, so prices are never hallucinated.
 3. **Reply drafting:** the LLM writes a short WhatsApp reply in the buyer's own language and script, using only the computed numbers, and asks for missing details.
 4. **Order book:** orders are saved in SQLite with a status (new → quoted → confirmed → delivered / cancelled).
 5. **Editable rate list** in the sidebar.
@@ -146,7 +146,11 @@ Observed issues and fixes:
 - **#2:** the model's product string did not exactly match a known alias, so validation rejected it. Fix: product matching now also checks each word of the model's answer against the alias list, and the prompt asks for a single canonical word.
 - **#7:** the model converted 2 ton into 2000 itself while also reporting the unit as ton. Fix: the prompt now says to copy the number as written and never convert units, since conversion is done deterministically in `pricing.py`.
 
-**Run 2, after fixes:** _(to be filled from `python run_eval.py`)_
+**Run 2, after the two fixes: 7/8 passed.** #2 now passes. #7 still failed (quantity 2000 instead of 2): the model kept converting tons to kg despite the prompt instruction.
+
+Fix 2: a deterministic **number-grounding check** (`pricing.ground_quantity`). If the model's quantity does not appear anywhere in the buyer's message, but the quantity divided by the unit factor (1000 for ton, 40 for maund) does, the original number is restored. The model's numbers are never trusted blindly.
+
+**Run 3, after the grounding check:** _(to be filled from `python run_eval.py`)_
 
 ## Known limitations
 - Prices are per peti; delivery is a flat fee per city from `prices.json`.

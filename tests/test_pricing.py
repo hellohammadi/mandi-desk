@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from pricing import build_quote, normalize_order, to_peti  # noqa: E402
+from pricing import build_quote, ground_quantity, normalize_order, to_peti  # noqa: E402
 
 CFG = {
     "currency": "PKR",
@@ -61,3 +61,12 @@ def test_product_fuzzy_match():
     assert normalize_order({"product": "kinno orange"}, PRODUCTS)["product"] == "kinnow"
     assert normalize_order({"product": "Keenu (A grade)"}, PRODUCTS)["product"] == "kinnow"
     assert normalize_order({"product": "apples"}, PRODUCTS)["product"] is None
+
+
+def test_ground_quantity_undoes_model_unit_conversion():
+    o = normalize_order({"product": "kinnow", "quantity": 2000, "unit": "ton"}, PRODUCTS)
+    assert ground_quantity(o, "Mujhe 2 ton kinnow chahiye")["quantity"] == 2
+    o2 = normalize_order({"product": "kinnow", "quantity": 50, "unit": "peti"}, PRODUCTS)
+    assert ground_quantity(o2, "50 peti chahiye")["quantity"] == 50
+    o3 = normalize_order({"product": "kinnow", "quantity": 50, "unit": "peti"}, PRODUCTS)
+    assert ground_quantity(o3, "pachas peti chahiye")["quantity"] == 50  # number words left alone

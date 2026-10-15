@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv
 from openai import BadRequestError, OpenAI
 
-from pricing import normalize_order
+from pricing import ground_quantity, normalize_order
 
 load_dotenv()
 
@@ -72,7 +72,7 @@ def extract_order(message: str, known_products: list[str]) -> dict:
     except BadRequestError:  # model without JSON mode: plain call, parse defensively
         resp = _client.chat.completions.create(model=MODEL, temperature=0, messages=messages)
     raw = _parse_json(resp.choices[0].message.content)
-    return normalize_order(raw, known_products)
+    return ground_quantity(normalize_order(raw, known_products), message)
 
 
 def draft_reply(message: str, order: dict, quote: dict | None, farm: str) -> str:

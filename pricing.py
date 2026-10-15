@@ -93,6 +93,27 @@ def normalize_order(raw: dict, known_products: list[str]) -> dict:
     return order
 
 
+UNIT_FACTORS = {"ton": KG_PER_TON, "maund": KG_PER_MAUND}
+
+
+def _numbers_in(text: str) -> set[float]:
+    return {float(n) for n in re.findall(r"\d+(?:\.\d+)?", text.replace(",", ""))}
+
+
+def ground_quantity(order: dict, message: str) -> dict:
+    """Guard against the model converting units itself: if its quantity does not
+    appear in the buyer's message, but quantity / unit-factor does, use that."""
+    q, unit = order.get("quantity"), order.get("unit")
+    nums = _numbers_in(message)
+    if q is None or not nums or q in nums:
+        return order
+    factor = UNIT_FACTORS.get(unit)
+    if factor and (q / factor) in nums:
+        order["quantity"] = q / factor
+        order["quantity_corrected"] = True
+    return order
+
+
 def to_peti(quantity: float, unit: str, kg_per_peti: float) -> int:
     if unit == "kg":
         petis = quantity / kg_per_peti
