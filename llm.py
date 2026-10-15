@@ -1,5 +1,7 @@
 """Model calls. Works with Groq (default) or a local Ollama server, because
 both expose an OpenAI-compatible API. Switch with environment variables."""
+from __future__ import annotations
+
 import json
 import os
 

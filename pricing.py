@@ -4,6 +4,8 @@ The LLM only *reads* the buyer message. All numbers (conversion, price,
 delivery, total) are computed here in plain Python so they are never
 hallucinated.
 """
+from __future__ import annotations
+
 import math
 
 REQUIRED_FIELDS = ["product", "grade", "quantity", "city", "delivery_date"]

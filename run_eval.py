@@ -3,6 +3,8 @@ fields. Writes a Markdown table you can paste into the README.
 
     python run_eval.py
 """
+from __future__ import annotations
+
 import json
 from pathlib import Path
 

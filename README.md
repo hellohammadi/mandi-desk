@@ -101,7 +101,7 @@ erDiagram
 ```
 
 ## Setup
-Requires Python 3.10+.
+Requires Python 3.9+.
 ```bash
 git clone https://github.com/<your-username>/mandi-desk.git
 cd mandi-desk
