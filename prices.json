@@ -1,0 +1,16 @@
+{
+  "farm_name": "The Original Fruits",
+  "currency": "PKR",
+  "kg_per_peti": 10,
+  "products": {
+    "kinnow": { "A": 2200, "B": 1800, "C": 1400 },
+    "mosambi": { "A": 2000, "B": 1600, "C": 1200 }
+  },
+  "delivery": {
+    "default": 1500,
+    "sargodha": 0,
+    "lahore": 800,
+    "islamabad": 1200,
+    "karachi": 3000
+  }
+}

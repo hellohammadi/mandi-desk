@@ -1,0 +1,34 @@
+[
+  {
+    "message": "AoA bhai 50 peti kinnow chahiye A grade, Lahore delivery agle hafte. Ahmed 0300-1234567",
+    "expected": { "product": "kinnow", "grade": "A", "quantity": 50, "unit": "peti", "city": "Lahore" }
+  },
+  {
+    "message": "Salam, 20 mann kinno B grade ka rate kya hai? Islamabad bhejna hai Friday tak",
+    "expected": { "product": "kinnow", "grade": "B", "quantity": 20, "unit": "maund", "city": "Islamabad" }
+  },
+  {
+    "message": "Hi, I need 500 kg of grade A kinnow delivered to Karachi by 25 November. - Sara",
+    "expected": { "product": "kinnow", "grade": "A", "quantity": 500, "unit": "kg", "city": "Karachi" }
+  },
+  {
+    "message": "السلام علیکم، مجھے 30 پیٹی کینو چاہیے، اے گریڈ، لاہور میں اگلے ہفتے",
+    "expected": { "product": "kinnow", "grade": "A", "quantity": 30, "unit": "peti", "city": "Lahore" }
+  },
+  {
+    "message": "bhai kinnow ka rate bata do",
+    "expected": { "product": "kinnow", "grade": null, "quantity": null, "unit": null, "city": null }
+  },
+  {
+    "message": "100 crates mosambi C grade chahiye Sargodha pickup kal",
+    "expected": { "product": "mosambi", "grade": "C", "quantity": 100, "unit": "peti", "city": "Sargodha" }
+  },
+  {
+    "message": "Mujhe 2 ton kinnow chahiye wholesale ke liye, grade B, Lahore, next month",
+    "expected": { "product": "kinnow", "grade": "B", "quantity": 2, "unit": "ton", "city": "Lahore" }
+  },
+  {
+    "message": "kal wala order cancel kar do please",
+    "expected": { "product": null, "grade": null, "quantity": null, "unit": null, "city": null }
+  }
+]
