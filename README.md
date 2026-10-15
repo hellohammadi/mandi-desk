@@ -5,6 +5,8 @@ Paste a buyer's WhatsApp message (Roman Urdu, Urdu or English) and Mandi Desk ex
 
 Built at Hacktoberfest Lahore 2026 (Riphah International University).
 
+**How it is used:** Mandi Desk is the farmer's private back-office tool and runs locally on the farmer's computer. Buyers keep messaging on WhatsApp as usual; the farmer pastes their messages into Mandi Desk, reviews the drafted reply and sends it back.
+
 ## Problem
 Farmers selling directly (e.g. Kinnow growers in Sargodha) receive inquiries as messy chat messages:
 *"bhai 50 peti kinnow chahiye A grade, Lahore delivery agle hafte, rate?"*
@@ -22,10 +24,11 @@ Tracking these by hand leads to missed orders, inconsistent quotes and slow repl
 ## AI component
 | Item | Value |
 |---|---|
-| Model | `allam-2-7b` (ALLaM 7B Instruct, open-weight, by SDAIA) |
+| Model | `allam-2-7b` on Groq: ALLaM 7B Instruct by SDAIA, open-weight (published on Hugging Face as `ALLaM-AI/ALLaM-7B-Instruct-preview`) |
 | Parameter size | 7B |
 | Provider / runtime | Groq API (OpenAI-compatible). Alternative: Ollama locally, e.g. `qwen3:8b` |
 | Why this model | It was the only chat model of 8B or fewer parameters available on our Groq account at build time (`llama-3.1-8b-instant` returned 404). |
+| Integration | `llm.py` calls the model through the OpenAI-compatible Chat Completions API (`openai` Python SDK with Groq's base URL). Model name, key and base URL come from environment variables, so the same code runs against Ollama. |
 | Calls per message | 2: (1) extraction to JSON, temperature 0 (JSON mode when supported, otherwise defensive JSON parsing); (2) reply drafting, temperature 0.3 |
 | What it does | Multilingual understanding of Roman Urdu / Urdu / English buyer messages and generation of the reply. Without the model the app cannot read orders at all. |
 
@@ -37,7 +40,8 @@ flowchart LR
   X --> M[ALLaM 7B via Groq]
   M --> X
   X --> N[pricing.normalize_order]
-  N --> P[pricing.build_quote]
+  N --> GQ[pricing.ground_quantity]
+  GQ --> P[pricing.build_quote]
   R[(prices.json rate list)] --> P
   P --> D[llm.draft_reply]
   D --> M
@@ -52,7 +56,9 @@ flowchart LR
   E --> M[LLM]
   M --> E
   E --> V((Normalize & validate))
-  V --> Q((Compute quote))
+  V --> GR((Ground numbers against message))
+  I -.-> GR
+  GR --> Q((Compute quote))
   RL[(Rate list)] --> Q
   Q --> G((Draft reply))
   G --> M
@@ -71,7 +77,7 @@ sequenceDiagram
   Farmer->>UI: Paste buyer message
   UI->>LLM: Extract order (JSON)
   LLM-->>UI: Raw JSON
-  UI->>P: normalize_order + build_quote
+  UI->>P: normalize_order + ground_quantity + build_quote
   P-->>UI: Order, missing fields, quote
   UI->>LLM: Draft reply with ORDER / MISSING / QUOTE
   LLM-->>UI: Reply text
@@ -104,11 +110,11 @@ erDiagram
 ## Setup
 Requires Python 3.9+.
 ```bash
-git clone https://github.com/<your-username>/mandi-desk.git
+git clone https://github.com/hellohammadi/mandi-desk.git
 cd mandi-desk
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python3 -m venv .venv && source .venv/bin/activate   # Windows: python -m venv .venv && .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env   # then put your key in GROQ_API_KEY
+cp .env.example .env   # then put your Groq API key in GROQ_API_KEY (never commit .env)
 ```
 Environment variables: `GROQ_API_KEY` (or `LLM_API_KEY`), `MODEL_NAME`, optional `LLM_BASE_URL`.
 
@@ -118,7 +124,17 @@ Environment variables: `GROQ_API_KEY` (or `LLM_API_KEY`), `MODEL_NAME`, optional
 ```bash
 streamlit run app.py
 ```
+Opens at http://localhost:8501.
+
 Minimal example: pick the first sample message, click **Process message**. Expected: kinnow, grade A, 50 peti, Lahore → 50 × 2,200 + 800 delivery = **110,800 PKR**, and a Roman Urdu reply.
+
+More examples to type in (default rate list in `prices.json`):
+
+| Buyer message | Expected result |
+|---|---|
+| `Need 3 tons of A grade kinnow for export, Karachi port, 1st December. Bilal 0321-5556677` | 300 peti × 2,200 + 3,000 = **663,000 PKR**, English reply |
+| `20 mann mosambi B grade chahiye Faisalabad` | 80 peti × 1,600 + 1,500 (default delivery) = **129,500 PKR** |
+| `bhai 15 peti kinno chahiye Multan bhejna hai` | No quote: grade is missing, so the reply asks for it |
 
 ## Testing
 ```bash
@@ -150,18 +166,20 @@ Observed issues and fixes:
 
 Fix 2: a deterministic **number-grounding check** (`pricing.ground_quantity`). If the model's quantity does not appear anywhere in the buyer's message, but the quantity divided by the unit factor (1000 for ton, 40 for maund) does, the original number is restored. The model's numbers are never trusted blindly.
 
-**Run 3, after the grounding check: 8/8 passed.**
+**Run 3, after the grounding check: 8/8 passed.** Expected output = the fields in `samples.json`; actual output = what the pipeline returned (identical for every sample in this run).
 
-| # | Input | Result | Notes |
-|---|---|---|---|
-| 1 | AoA bhai 50 peti kinnow chahiye A grade, Lahore delivery agl... | PASS | - |
-| 2 | Salam, 20 mann kinno B grade ka rate kya hai? Islamabad bhej... | PASS | - |
-| 3 | Hi, I need 500 kg of grade A kinnow delivered to Karachi by ... | PASS | - |
-| 4 | السلام علیکم، مجھے 30 پیٹی کینو چاہیے، اے گریڈ، لاہور میں اگ... | PASS | - |
-| 5 | bhai kinnow ka rate bata do | PASS | - |
-| 6 | 100 crates mosambi C grade chahiye Sargodha pickup kal | PASS | - |
-| 7 | Mujhe 2 ton kinnow chahiye wholesale ke liye, grade B, Lahor... | PASS | - |
-| 8 | kal wala order cancel kar do please | PASS | - |
+| # | Scenario | Input | Expected output (product, grade, qty, unit, city) | Actual outcome | Result |
+|---|---|---|---|---|---|
+| 1 | Roman Urdu full order | AoA bhai 50 peti kinnow chahiye A grade, Lahore delivery agle hafte. Ahmed 0300-1234567 | kinnow, A, 50, peti, Lahore | same | PASS |
+| 2 | Roman Urdu, mann unit, spelling variant | Salam, 20 mann kinno B grade ka rate kya hai? Islamabad bhejna hai Friday tak | kinnow, B, 20, maund, Islamabad | same | PASS |
+| 3 | English, kg unit | Hi, I need 500 kg of grade A kinnow delivered to Karachi by 25 November. - Sara | kinnow, A, 500, kg, Karachi | same | PASS |
+| 4 | Urdu script | السلام علیکم، مجھے 30 پیٹی کینو چاہیے، اے گریڈ، لاہور میں اگلے ہفتے | kinnow, A, 30, peti, Lahore | same | PASS |
+| 5 | Price inquiry only | bhai kinnow ka rate bata do | kinnow, null, null, null, null | same | PASS |
+| 6 | Other product, crates | 100 crates mosambi C grade chahiye Sargodha pickup kal | mosambi, C, 100, peti, Sargodha | same | PASS |
+| 7 | Ton unit (model tends to convert) | Mujhe 2 ton kinnow chahiye wholesale ke liye, grade B, Lahore, next month | kinnow, B, 2, ton, Lahore | same (2000 corrected to 2 by grounding check) | PASS |
+| 8 | Not an order | kal wala order cancel kar do please | all null | same | PASS |
+
+Unit tests (`pytest -q`): 8 tests for normalisation, product matching, unit conversion, quoting and number grounding, all passing.
 
 | Run | Change | Passed |
 |---|---|---|
@@ -176,17 +194,18 @@ Note: 8 samples is a small set and was also used while fixing, so this shows the
 - Only products in the rate list are recognised (kinnow, mosambi by default).
 - The 7B model can misread unusual spellings or mixed-script messages; the farmer reviews every reply before sending (human in the loop).
 - No direct WhatsApp integration yet; messages are pasted manually.
-- Single-user, local SQLite database.
+- Single-user, local SQLite database; runs locally and is not deployed publicly (it holds buyer names, phone numbers and the farmer's rates).
+- The grounding check only handles a model that multiplies by the unit factor (ton, maund); other numeric mistakes are caught only by the farmer's review.
 
 ## Team
 | Name | Contribution |
 |---|---|
-| Hammad | Idea, prompts, pricing logic, UI, testing |
+| Hammad | Problem and domain knowledge (Kinnow grower, Sargodha), product decisions, model selection, running the evaluation and the fix iterations, demo |
 
 ## Acknowledgements
-- ALLaM 7B by SDAIA (open-weight; see its model license on Hugging Face), served via Groq
+- ALLaM 7B Instruct by SDAIA, Apache-2.0 ([model card](https://huggingface.co/ALLaM-AI/ALLaM-7B-Instruct-preview)), served via Groq
 - Streamlit, OpenAI Python SDK (used as an OpenAI-compatible client), python-dotenv, pytest
-- AI-assisted development: code drafted with help from Claude and reviewed/tested by the team
+- AI-assisted development: code and documentation were drafted with help from Claude (Anthropic) and run, tested and iterated on by the team
 
 ## License
 MIT. See [LICENSE](LICENSE).
